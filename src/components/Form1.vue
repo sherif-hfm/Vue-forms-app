@@ -55,7 +55,7 @@ export default {
    {
        return{
            userName:'',
-            formData:{userName:'Sherif',password:'123',CustomText:'-',Food:[],milk:'1',sugar:'',lemon:true,gender:'male',option:'1'}
+            formData:{userName:'Sherif',password:'123',CustomText:'-',Food:[],milk:'1',sugar:'',lemon:true,gender:'male',option:'1'},
        }
    },
    methods:{
