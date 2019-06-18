@@ -8,27 +8,20 @@ export class FormGroup
             this[k]=_vform[k];
         //console.log(this.vForm);
     }
-    get(controlName){
-        //console.log('get ' + controlName + ' '+controlName.includes('.'));
+    get(controlName,formControlIndex){
         try {
             let _control;
             if(controlName.includes('.')){
-                controlName.split('.').reduce((accumulator, currentValue)=>{  
-                    //console.log(accumulator+ '-' + currentValue);
-                if(accumulator == undefined)
-                    _control =_control[currentValue]
-                else
-                _control =this[accumulator][currentValue];
-            });
+                let path=controlName.split('.');
+                let newPath=path.splice(1).join('.');
+                return this[path[0]].get(newPath,formControlIndex);
             }
             else{
-                _control=this[controlName]
-                //console.log(this[controlName]);
+                return this[controlName];
             }
-        return _control ;
           }
           catch(err) {
-              console.log('error' + err)
+            console.log('error' + err)
             return null;
           }
     }
@@ -59,6 +52,11 @@ export class FormGroup
             }
         }
     }
+
+    Push(prop,data)
+    {
+        Vue.set(this, prop, data);
+    }
 }
 
 export class FormControl
@@ -69,45 +67,9 @@ export class FormControl
         this.vNodes=[];
     }
 
-    setValue(newValue)
-    {
-        this._value=newValue;
-        if(this.vNodes.length > 0)
-        {
-            this.vNodes.forEach(vNode=>{
-                if(vNode.tag.startsWith('vue-component'))
-                {
-                    vNode.componentInstance.value=newValue;
-                }
-                else if(vNode.tag=='select')
-                {
-                    vNode.children.forEach(option=>{
-                        if(newValue==option.elm.value){
-                            option.elm.setAttribute("selected", "true");
-                        }
-                        else{
-                            option.elm.removeAttribute("selected");
-                        }
-                    })
-                }
-                else
-                {
-                    switch(vNode.elm.type)
-                    {
-                        case 'radio':
-                            if(vNode.elm.value == newValue)  
-                                vNode.elm.checked=true;
-                            break;
-                        case 'checkbox':
-                            vNode.elm.checked=newValue;
-                            break;
-                        default:
-                            vNode.elm.value=newValue;
-                    }
-                }
-            })
-            
-        }
+    setValue(newValue){
+        this.UpdateModelValue(newValue)
+        this.UpdateUiValue();
     }
 
     get value() {
@@ -123,8 +85,12 @@ export class FormControl
 
       UpdateUiValue()
       {
-        if(this._value!= undefined)
-            this.setValue(this._value);
+          if(this._value != undefined && this.IsvNodeExist())
+          {
+            this.vNodes.forEach(vnode=>{
+                SetElementValue(vnode,this._value);
+            })
+          }
       }
 
       IsvNodeExist()
@@ -139,75 +105,21 @@ export class FormControl
 export class FormArray
 {
     constructor(){
-        console.log('FormArray constructor');
+        //console.log('FormArray constructor');
         this._value=[];
         this.vNodes=[];
+        this.Controls=[];
     }
-    setValue(newValue)
-    {
-        if(Array.isArray(newValue))
-        {
-            this._value=[];
-            this._value.push(...newValue);
-              
-            if(this.vNodes.length > 0)
-            {
-                this.vNodes.forEach(vNode=>{                    
-                    if(vNode.tag.startsWith('vue-component'))
-                    {
-                        vNode.componentInstance.value=newValue;
-                    }
-                    else if(vNode.tag=='select')
-                    {
-                        vNode.children.forEach(option=>{
-                            if(newValue.includes(option.elm.value)){
-                                option.elm.setAttribute("selected", "true");
-                            }
-                            else{
-                                option.elm.removeAttribute("selected");
-                            }
-                        })
-                    }
-                })
-                
-            }
-        }
-        else
-        {
-            if(this._value == undefined || this._value==null)
-                this._value=[];
-            this._value.push(newValue);
-        }
+    get(controlName,formControlIndex){
+        return this.Controls[formControlIndex].get(controlName)
     }
 
     get value() {
         return this._value;
       }
 
-      UpdateModelValue(newValue,formControlIndex){
-          
-            if(newValue != undefined)
-            {
-                if(Array.isArray(newValue))
-                {
-                    this._value=newValue;
-                }
-                else
-                {
-                    if(this._value==undefined || this._value==null)
-                    {
-                        console.log('new aaray')
-                        this._value=[];
-                    }
-                    this._value.splice(formControlIndex, 1, newValue)
-                }
-            }
-        }
-
-      UpdateUiValue()
-      {
-          if(this._value!= undefined)
-            this.setValue(this._value);
+      Push(obj){
+        this.Controls.push(obj) 
       }
 }
 
@@ -262,34 +174,33 @@ const SetElementValue=function(elm,newValue)
         else
             crElm=elm.elm
     }
-    if(crElm.constructor.name=='VueComponent')
-    {
-        return crElm.value;
+    if(crElm.constructor.name=='VueComponent'){
+        crElm.value=newValue;
     }
-    else if(crElm.constructor.name=='HTMLInputElement')
-    {
-        switch(crElm.type)
-        {
+    else if(crElm.constructor.name=='HTMLInputElement'){
+        switch(crElm.type){
             case 'checkbox':
-                    return crElm.checked;
+                crElm.checked=newValue;
             break;
             case 'radio':
-                    return crElm.value
+                if(crElm.value == newValue)  
+                    crElm.checked=true;
             break;
             default:
-                return crElm.value
+                crElm.value=newValue;
         }
     }
-    else if(crElm.constructor.name=='HTMLSelectElement')
-    {
-        let selectedOptions=[];
-        Array.apply(null, crElm.options).map(option=>{
-            if(option.selected)
-                {
-                    selectedOptions.push(option.value);
-                }
-        });
-        return selectedOptions
+    else if(crElm.constructor.name=='HTMLSelectElement'){
+        for(var i = 0; i < crElm.options.length; i++) {
+            let option=crElm.options[i];
+            if(newValue.includes(option.value)){
+                option.setAttribute("selected", "true");
+            }
+            else{
+                option.removeAttribute("selected");
+            }
+          }
+        
     }
 }
 
@@ -306,7 +217,6 @@ const bindEvent=function(el, binding, vnode){
     {
         var config = { attributes: false, childList: true, subtree: true };
         var callback = function(mutationsList, observer) {
-            //console.log('observer');
             bindData.lastBinding.value.ClearVnode();
             bindEvent(bindData.lastEl, bindData.lastBinding, bindData.lastvnode);
             bindData.lastBinding.value.ClearUnlinkedValue();
@@ -318,18 +228,20 @@ const bindEvent=function(el, binding, vnode){
     }
     if(vnode.children != undefined)
     {
-        vnode.children.forEach(element => {
+        vnode.children.forEach(element => {            
             if(element.data != undefined)
             {
                 if(element.data.attrs != undefined)
                 {                    
                     if(element.data.attrs.formControlName != undefined)
-                    {                        
-                        let controlName=element.data.attrs.formControlName;
-                        let control=binding.value.get(controlName);
-                        let formControlIndex;
+                    {   
+                        let formControlIndex;                     
                         if(element.data.attrs.formControlIndex != undefined)
                             formControlIndex=element.data.attrs.formControlIndex
+                        let controlName=element.data.attrs.formControlName;
+                        let control=binding.value.get(controlName,formControlIndex);
+                        //console.log(controlName);
+                        //console.log(control);
                         if(control != undefined){
                             
                             element.elm.formControl=control;
@@ -339,37 +251,32 @@ const bindEvent=function(el, binding, vnode){
                             if(element.tag.startsWith('vue-component'))
                             {
                                 element.componentInstance.$on('input',function(e){
-                                    console.log('input');
-                                    console.log(e);
+                                    //console.log('input');
+                                    //console.log(e);
                                     e.$el.formControl.UpdateModelValue(GetElementValue(e),formControlIndex);
-                                    //e.$el.formControl.setValue(e.value);
                                 })
                             }
                             else if(element.tag=='select')
                             {
                                 element.elm.onchange=function(e){
-                                    console.log('onchange');
-                                    console.log(e.target);
-                                    //e.target.formControl.setValue(e.target.options[e.target.selectedIndex].value);
+                                    //console.log('onchange');
+                                    //console.log(e.target);
                                     e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
                                 }
                             }
                             else
                             {
                                 element.elm.oninput=function(e){                                    
-                                    console.log('oninput');
-                                    console.log(e);
+                                    //console.log('oninput');
+                                    //console.log(e);
                                     switch(e.target.type) {
                                         case 'checkbox':
-                                            //e.target.formControl.setValue(e.target.checked);
                                             e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
                                           break;
                                         case 'radio':
-                                            //e.target.formControl.setValue(e.target.value)
                                             e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
                                           break;
                                         default:
-                                            //e.target.formControl.setValue(e.target.value);
                                             e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
                                       }
                                 }

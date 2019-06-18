@@ -57,14 +57,27 @@
             option2:{{formData.options2.value}}<br>
              
             <label>Notes</label>
-            <div v-for="(note, index) in formData.Notes.value">
-                <input  class="w3-input" type="text" formControlName="Notes" :formControlIndex="index">
-                <button @click.prevent="formData.Notes.value.splice(index,1)">Remove Note{{index}}</button>
-            </div>
-            <br>
             <button @click.prevent="AddNote()">Add Note</button>
             <br>
-            Notes:{{formData.Notes.value}}<br>
+            <div v-for="(note, index) in formData.Notes.Controls">
+                <input  class="w3-input" type="text" formControlName="Notes.NoteNo" :formControlIndex="index">
+                <input  class="w3-input" type="text" formControlName="Notes.NoteDesc" :formControlIndex="index">
+                <button @click.prevent="formData.Notes.Controls.splice(index,1)">Remove Note{{index}}</button>
+            </div>
+            <br>
+            Notes:{{formData.Notes.value}}
+            <p v-for="(note, index) in formData.Notes.Controls">
+                NoteNo:{{note.NoteNo.value}}<br>
+                NoteDesc:{{note.NoteDesc.value}}<br>
+            </p>
+            <br>
+            <button @click.prevent="AddData()">AddData</button><br>
+                <p v-if="ShowNewData">
+                <label>New Data</label>
+                <input class="w3-input" type="text" formControlName="newData"><br>
+                New Data:{{formData.newData.value}}<br>
+                </p>
+            
             <hr>
             <button @click.prevent="SetValue()">SetValue</button>
             <button @click.prevent="GetData()">GetData</button>
@@ -99,19 +112,20 @@ export default {
                     options2:new FormControl()
                     //options:new FormControl()
                 }),
-                ShowControl:true,
+                ShowControl:false,
+                ShowNewData:false,
                 Notes:[]
        }
    },
    methods:{
        SetValue(){
            console.log('SetValue');
-           //this.formData.get('basicData.fullName').setValue('Sherif')
-           //this.formData.get('foodData.sugar').setValue('true')
-           //this.formData.get('gender').setValue('female')
-           //this.formData.get('CustomText').setValue('ABC')
-           this.formData.get('options').setValue(['2'])
-           //this.formData.get('options2').setValue(['2','3'])
+           this.formData.basicData.fullName.setValue('Sherif')
+           this.formData.foodData.sugar.setValue('true')
+           this.formData.gender.setValue('female')
+           this.formData.CustomText.setValue('ABC')
+           this.formData.options.setValue(['2'])
+           this.formData.options2.setValue(['2','3'])
            //this.formData.get('Notes').setValue('Notes1')
        },
        GetData(){
@@ -119,7 +133,18 @@ export default {
             //console.log(this.formData.basicData.fullName.value) ;
        },
        AddNote(){
-            this.Notes.push('');
+           //console.log(this.Notes);
+            this.formData.Notes.Push(new FormGroup({
+                NoteNo:new FormControl(),
+                NoteDesc:new FormControl()
+            }));
+       },
+       AddData(){
+           //console.log(this);
+           //this.$set(this.formData, 'newData', new FormControl())
+           this.formData.Push("newData",new FormControl())
+           //this.formData.newData=new FormControl();
+           this.ShowNewData=true;
        }
    }
 }
