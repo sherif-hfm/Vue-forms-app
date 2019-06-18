@@ -1,7 +1,6 @@
 <template>
     <div>
-        <input type="text" :value="value" @input="change($event)"><br>
-    {{value}}
+        <input type="text" :value="value" @input="change($event)"><br>    
     </div>
 </template>
 

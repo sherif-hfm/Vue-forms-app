@@ -8,13 +8,11 @@ export class FormGroup
             this[k]=_vform[k];
         //console.log(this.vForm);
     }
-    get(controlName)
-    {
+    get(controlName){
         //console.log('get ' + controlName + ' '+controlName.includes('.'));
         try {
             let _control;
-            if(controlName.includes('.'))
-            {
+            if(controlName.includes('.')){
                 controlName.split('.').reduce((accumulator, currentValue)=>{  
                     //console.log(accumulator+ '-' + currentValue);
                 if(accumulator == undefined)
@@ -23,8 +21,7 @@ export class FormGroup
                 _control =this[accumulator][currentValue];
             });
             }
-            else
-            {
+            else{
                 _control=this[controlName]
                 //console.log(this[controlName]);
             }
@@ -35,10 +32,8 @@ export class FormGroup
             return null;
           }
     }
-    ClearVnode()
-    {
-        for(let k in this)
-        {
+    ClearVnode(){
+        for(let k in this){
             if(this[k] instanceof FormGroup){
                 this[k].ClearVnode();
             }
@@ -47,18 +42,20 @@ export class FormGroup
             }
         }
     }
-    ClearUnlinkedValue()
-    {
-        for(let k in this)
-        {
+    ClearUnlinkedValue(){
+        for(let k in this){
             if(this[k] instanceof FormGroup){
                 this[k].ClearUnlinkedValue();
             }
-            else{
+            else if(this[k] instanceof FormControl){
                 if(this[k].vNodes.length==0){
                     this[k]._value=undefined;                
                 }
-                
+            }
+            else if(this[k] instanceof FormArray){
+                if(this[k].vNodes.length==0){
+                    this[k]._value=undefined;                
+                }
             }
         }
     }
@@ -71,6 +68,7 @@ export class FormControl
         this._value=undefined;
         this.vNodes=[];
     }
+
     setValue(newValue)
     {
         this._value=newValue;
@@ -110,22 +108,39 @@ export class FormControl
             })
             
         }
-    }    
+    }
+
     get value() {
         return this._value;
       }
-      ApplyValue()
+
+      UpdateModelValue(newValue){
+            if(newValue != undefined)
+            {
+                this._value=newValue;
+            }
+      }
+
+      UpdateUiValue()
       {
         if(this._value!= undefined)
             this.setValue(this._value);
+      }
+
+      IsvNodeExist()
+      {
+        if(this.vNodes != undefined && this.vNodes != null && this.vNodes.length >0) 
+            return true;
+        else
+            return false;
       }
 }
 
 export class FormArray
 {
     constructor(){
-        //console.log('FormControl constructor');
-        this._value=undefined;
+        console.log('FormArray constructor');
+        this._value=[];
         this.vNodes=[];
     }
     setValue(newValue)
@@ -157,15 +172,125 @@ export class FormArray
                 
             }
         }
-    }    
+        else
+        {
+            if(this._value == undefined || this._value==null)
+                this._value=[];
+            this._value.push(newValue);
+        }
+    }
+
     get value() {
         return this._value;
       }
-      ApplyValue()
+
+      UpdateModelValue(newValue,formControlIndex){
+          
+            if(newValue != undefined)
+            {
+                if(Array.isArray(newValue))
+                {
+                    this._value=newValue;
+                }
+                else
+                {
+                    if(this._value==undefined || this._value==null)
+                    {
+                        console.log('new aaray')
+                        this._value=[];
+                    }
+                    this._value.splice(formControlIndex, 1, newValue)
+                }
+            }
+        }
+
+      UpdateUiValue()
       {
           if(this._value!= undefined)
             this.setValue(this._value);
       }
+}
+
+const GetElementValue=function(elm)
+{
+    let crElm=elm;
+    if(elm.constructor.name=='VNode')
+    {
+        if(elm.componentInstance != undefined)
+            crElm=elm.componentInstance;
+        else
+            crElm=elm.elm
+    }
+    if(crElm.constructor.name=='VueComponent')
+    {
+        return crElm.value;
+    }
+    else if(crElm.constructor.name=='HTMLInputElement')
+    {
+        switch(crElm.type)
+        {
+            case 'checkbox':
+                    return crElm.checked;
+            break;
+            case 'radio':
+                    return crElm.value
+            break;
+            default:
+                return crElm.value
+        }
+    }
+    else if(crElm.constructor.name=='HTMLSelectElement')
+    {
+        let selectedOptions=[];
+        Array.apply(null, crElm.options).map(option=>{
+            if(option.selected)
+                {
+                    selectedOptions.push(option.value);
+                }
+        });
+        return selectedOptions
+    }
+}
+
+const SetElementValue=function(elm,newValue)
+{
+    let crElm=elm;
+    if(elm.constructor.name=='VNode')
+    {
+        if(elm.componentInstance != undefined)
+            crElm=elm.componentInstance;
+        else
+            crElm=elm.elm
+    }
+    if(crElm.constructor.name=='VueComponent')
+    {
+        return crElm.value;
+    }
+    else if(crElm.constructor.name=='HTMLInputElement')
+    {
+        switch(crElm.type)
+        {
+            case 'checkbox':
+                    return crElm.checked;
+            break;
+            case 'radio':
+                    return crElm.value
+            break;
+            default:
+                return crElm.value
+        }
+    }
+    else if(crElm.constructor.name=='HTMLSelectElement')
+    {
+        let selectedOptions=[];
+        Array.apply(null, crElm.options).map(option=>{
+            if(option.selected)
+                {
+                    selectedOptions.push(option.value);
+                }
+        });
+        return selectedOptions
+    }
 }
 
 const bindData={
@@ -175,7 +300,7 @@ const bindData={
     formChangeEvent:false
 }
 
-const bindEvent=function(el, binding, vnode,){
+const bindEvent=function(el, binding, vnode){
     //console.log(vnode);
     if(vnode.tag=="form" && bindData.formChangeEvent==false)
     {
@@ -202,32 +327,10 @@ const bindEvent=function(el, binding, vnode,){
                     {                        
                         let controlName=element.data.attrs.formControlName;
                         let control=binding.value.get(controlName);
+                        let formControlIndex;
+                        if(element.data.attrs.formControlIndex != undefined)
+                            formControlIndex=element.data.attrs.formControlIndex
                         if(control != undefined){
-                            // set control value
-                            
-                            
-                            // if(element.tag.startsWith('vue-component'))
-                            // {
-                            //     control.setValue(element.componentInstance.value)
-                            // }
-                            // else if(element.tag=='select')
-                            // {
-
-                            // }
-                            // else
-                            // {
-                            //     switch(element.elm.type) {
-                            //         case 'checkbox':
-                            //                 control.setValue(element.elm.checked);
-                            //               break;
-                            //               case 'radio':
-                            //                 if(element.elm.checked)  
-                            //                     control.setValue(element.elm.value);
-                            //               break;
-                            //         default:                                            
-                            //                 control.setValue(element.elm.value);
-                            //     }
-                            // }
                             
                             element.elm.formControl=control;
                             element.elm.formControlName=controlName;
@@ -236,46 +339,43 @@ const bindEvent=function(el, binding, vnode,){
                             if(element.tag.startsWith('vue-component'))
                             {
                                 element.componentInstance.$on('input',function(e){
-                                    e.$el.formControl.setValue(e.value);
+                                    console.log('input');
+                                    console.log(e);
+                                    e.$el.formControl.UpdateModelValue(GetElementValue(e),formControlIndex);
+                                    //e.$el.formControl.setValue(e.value);
                                 })
                             }
                             else if(element.tag=='select')
                             {
                                 element.elm.onchange=function(e){
-                                    if(e.target.formControl instanceof FormArray)
-                                    {
-                                        let selectedOptions=[];
-                                        Array.apply(null, e.target.options).map(option=>{
-                                            if(option.selected)
-                                             {
-                                                 selectedOptions.push(option.value);
-                                             }
-                                        });
-                                        e.target.formControl.setValue(selectedOptions)
-                                    }
-                                    else if(e.target.formControl instanceof FormControl)
-                                    {
-                                        e.target.formControl.setValue(e.target.options[e.target.selectedIndex].value);
-                                    }
+                                    console.log('onchange');
+                                    console.log(e.target);
+                                    //e.target.formControl.setValue(e.target.options[e.target.selectedIndex].value);
+                                    e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
                                 }
                             }
                             else
                             {
-                                element.elm.oninput=function(e){    
+                                element.elm.oninput=function(e){                                    
+                                    console.log('oninput');
+                                    console.log(e);
                                     switch(e.target.type) {
                                         case 'checkbox':
-                                            e.target.formControl.setValue(e.target.checked);
+                                            //e.target.formControl.setValue(e.target.checked);
+                                            e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
                                           break;
                                         case 'radio':
-                                            e.target.formControl.setValue(e.target.value)
+                                            //e.target.formControl.setValue(e.target.value)
+                                            e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
                                           break;
                                         default:
-                                            e.target.formControl.setValue(e.target.value);
+                                            //e.target.formControl.setValue(e.target.value);
+                                            e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
                                       }
                                 }
                             }
-                            // apply model value to ui
-                            control.ApplyValue();
+                            // Update ui by model data
+                            control.UpdateUiValue();
                         }
                     }
                 }

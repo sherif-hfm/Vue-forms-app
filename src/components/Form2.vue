@@ -8,17 +8,17 @@
                 <p>
                 <label>User Name</label>
                 <input class="w3-input" type="text" formControlName="basicData.fullName"> </p>
+                Full Name:{{formData.basicData.fullName.value}}<br>
                 <p>
                 <label>Password</label>
                 <input class="w3-input" type="password" formControlName="basicData.password"></p>
-            </div>            
-            <p>
+            </div>
+            <button @click.prevent="ShowControl=!ShowControl">Show Controls</button><br>            
+            <p v-if="ShowControl">
             <label>Custom Test</label>
             <CustomText  formControlName="CustomText"></CustomText></p>
-            <p v-if="NotesView">
-            <label>Notes</label>
-            <input class="w3-input" type="text" formControlName="Notes">
-            </p>
+            CustomText:{{formData.CustomText.value}}<br>
+           
             <h2>Checkboxes</h2>
              <div>
                 <p>
@@ -31,11 +31,14 @@
                 <input class="w3-check" name="lemon" type="checkbox"  formControlName="foodData.lemon">
                 <label>Lemon (Disabled)</label></p>
              </div>
+             Milk:{{formData.foodData.milk.value}}<br>
+             lemon:{{formData.foodData.lemon.value}}<br>
             <h2>Radio</h2>
-            <input class="w3-radio" type="radio" name="gender" value="male" checked="checked" formControlName="gender">
+            <input class="w3-radio" type="radio" name="gender" value="male"  checked="checked" formControlName="gender" formControlIndex='0'>
             <label>Male</label>
-            <input class="w3-radio" type="radio" name="gender" value="female"   formControlName="gender">
+            <input class="w3-radio" type="radio" name="gender" value="female"   formControlName="gender" formControlIndex='1'>
             <label>Female</label>
+             gender:{{formData.gender.value}}<br>
             <h2>Select</h2>
             <select class="w3-select" name="option" formControlName="options" >
                 <option value="" disabled selected>Choose your option</option>
@@ -43,6 +46,7 @@
                 <option value="2" itemCode='A2'>Option 2</option>
                 <option value="3" itemCode='A3'>Option 3</option>
             </select>
+             option:{{formData.options.value}}<br>
             <h2>Select2</h2>
             <select class="w3-select" name="option" formControlName="options2" multiple  >
                 <option value="" disabled selected>Choose your option</option>
@@ -50,21 +54,21 @@
                 <option value="2" itemCode='A2'>Option 2</option>
                 <option value="3" itemCode='A3'>Option 3</option>
             </select>
+            option2:{{formData.options2.value}}<br>
+             
+            <label>Notes</label>
+            <div v-for="(note, index) in formData.Notes.value">
+                <input  class="w3-input" type="text" formControlName="Notes" :formControlIndex="index">
+                <button @click.prevent="formData.Notes.value.splice(index,1)">Remove Note{{index}}</button>
+            </div>
+            <br>
+            <button @click.prevent="AddNote()">Add Note</button>
+            <br>
+            Notes:{{formData.Notes.value}}<br>
             <hr>
             <button @click.prevent="SetValue()">SetValue</button>
             <button @click.prevent="GetData()">GetData</button>
-            <button @click.prevent="NotesView=!NotesView">Show Controls</button>
         </form>
-        <hr>
-        Full Name:{{formData.basicData.fullName.value}}<br>
-        CustomText:{{formData.CustomText.value}}<br>
-        Notes:{{formData.Notes.value}}<br>
-        Milk:{{formData.foodData.milk.value}}<br>
-        lemon:{{formData.foodData.lemon.value}}<br>
-        gender:{{formData.gender.value}}<br>
-        option:{{formData.options.value}}<br>
-        option2:{{formData.options2.value}}<br>
-        
     </div>
 </template>
 <script>
@@ -88,14 +92,15 @@ export default {
                         'sugar':new FormControl(),
                         'lemon':new FormControl(),
                     }),
-                    Notes:new FormControl(),
+                    Notes:new FormArray(),
                     CustomText:new FormControl(),
                     gender:new FormControl(),
-                     options:new FormArray(),
-                     options2:new FormArray()
+                    options:new FormControl(),
+                    options2:new FormControl()
                     //options:new FormControl()
                 }),
-                NotesView:false
+                ShowControl:true,
+                Notes:[]
        }
    },
    methods:{
@@ -112,6 +117,9 @@ export default {
        GetData(){
             console.log(this.formData) ;
             //console.log(this.formData.basicData.fullName.value) ;
+       },
+       AddNote(){
+            this.Notes.push('');
        }
    }
 }
