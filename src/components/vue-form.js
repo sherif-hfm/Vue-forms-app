@@ -27,7 +27,8 @@ export class FormGroup
     }
     ClearVnode(){
         for(let k in this){
-            if(this[k] instanceof FormGroup){
+            if(this[k] instanceof FormGroup || this[k] instanceof FormArray){
+                console.log('ClearVnode FormGroup');
                 this[k].ClearVnode();
             }
             else{
@@ -114,6 +115,12 @@ export class FormArray
         return this.Controls[formControlIndex].get(controlName)
     }
 
+    ClearVnode(){
+        this.Controls.forEach(element => {
+            element.ClearVnode();
+        });
+    }
+
     get value() {
         return this._value;
       }
@@ -126,18 +133,18 @@ export class FormArray
 const GetElementValue=function(elm)
 {
     let crElm=elm;
-    if(elm.constructor.name=='VNode')
+    if(elm.constructor.toString().includes('VNode')) // elm.constructor.name=='VNode'
     {
         if(elm.componentInstance != undefined)
             crElm=elm.componentInstance;
         else
             crElm=elm.elm
     }
-    if(crElm.constructor.name=='VueComponent')
+    if(crElm.constructor.toString().includes('VueComponent')) // crElm.constructor.name=='VueComponent'
     {
         return crElm.value;
     }
-    else if(crElm.constructor.name=='HTMLInputElement')
+    else if(crElm.constructor.toString().includes('HTMLInputElement')) // crElm.constructor.name=='HTMLInputElement'
     {
         switch(crElm.type)
         {
@@ -151,7 +158,7 @@ const GetElementValue=function(elm)
                 return crElm.value
         }
     }
-    else if(crElm.constructor.name=='HTMLSelectElement')
+    else if(crElm.constructor.toString().includes('HTMLSelectElement')) // crElm.constructor.name=='HTMLSelectElement'
     {
         let selectedOptions=[];
         Array.apply(null, crElm.options).map(option=>{
@@ -167,17 +174,17 @@ const GetElementValue=function(elm)
 const SetElementValue=function(elm,newValue)
 {
     let crElm=elm;
-    if(elm.constructor.name=='VNode')
+    if(elm.constructor.toString().includes('VNode')) // elm.constructor.name=='VNode'
     {
         if(elm.componentInstance != undefined)
             crElm=elm.componentInstance;
         else
             crElm=elm.elm
     }
-    if(crElm.constructor.name=='VueComponent'){
+    if(crElm.constructor.toString().includes('VueComponent')){ // crElm.constructor.name=='VueComponent'
         crElm.value=newValue;
     }
-    else if(crElm.constructor.name=='HTMLInputElement'){
+    else if(crElm.constructor.toString().includes('HTMLInputElement')){ // crElm.constructor.name=='HTMLInputElement'
         switch(crElm.type){
             case 'checkbox':
                 crElm.checked=newValue;
@@ -190,11 +197,11 @@ const SetElementValue=function(elm,newValue)
                 crElm.value=newValue;
         }
     }
-    else if(crElm.constructor.name=='HTMLSelectElement'){
+    else if(crElm.constructor.toString().includes('HTMLSelectElement')){ //crElm.constructor.name=='HTMLSelectElement'
         for(var i = 0; i < crElm.options.length; i++) {
             let option=crElm.options[i];
             if(newValue.includes(option.value)){
-                option.setAttribute("selected", "true");
+                option.setAttribute("selected","selected");
             }
             else{
                 option.removeAttribute("selected");
@@ -240,8 +247,8 @@ const bindEvent=function(el, binding, vnode){
                             formControlIndex=element.data.attrs.formControlIndex
                         let controlName=element.data.attrs.formControlName;
                         let control=binding.value.get(controlName,formControlIndex);
-                        //console.log(controlName);
-                        //console.log(control);
+                        console.log(controlName);
+                        console.log(control);
                         if(control != undefined){
                             
                             element.elm.formControl=control;
@@ -266,20 +273,24 @@ const bindEvent=function(el, binding, vnode){
                             }
                             else
                             {
-                                element.elm.oninput=function(e){                                    
+                                const inputEvent=function(e)
+                                {
                                     //console.log('oninput');
-                                    //console.log(e);
-                                    switch(e.target.type) {
-                                        case 'checkbox':
-                                            e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
-                                          break;
-                                        case 'radio':
-                                            e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
-                                          break;
-                                        default:
-                                            e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
-                                      }
-                                }
+                                    //console.log(e.target);
+                                    e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
+                                    
+                                };
+                                switch(element.data.attrs.type) {
+                                    case 'checkbox':
+                                            element.elm.onchange=inputEvent;
+                                      break;
+                                    case 'radio':
+                                            element.elm.onchange=inputEvent;
+                                      break;
+                                    default:
+                                            element.elm.oninput=inputEvent;
+                                        
+                                  }
                             }
                             // Update ui by model data
                             control.UpdateUiValue();

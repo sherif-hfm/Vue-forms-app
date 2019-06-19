@@ -48,7 +48,7 @@
             </select>
              option:{{formData.options.value}}<br>
             <h2>Select2</h2>
-            <select class="w3-select" name="option" formControlName="options2" multiple  >
+            <select class="w3-select" name="option2" formControlName="options2" multiple  >
                 <option value="" disabled selected>Choose your option</option>
                 <option value="1" itemCode='A1'>Option 1</option>
                 <option value="2" itemCode='A2'>Option 2</option>
