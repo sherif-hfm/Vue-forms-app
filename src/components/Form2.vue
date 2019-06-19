@@ -31,13 +31,15 @@
                 <input class="w3-check" name="lemon" type="checkbox"  formControlName="foodData.lemon">
                 <label>Lemon (Disabled)</label></p>
              </div>
-             Milk:{{formData.foodData.milk.value}}<br>
+             milk:{{formData.foodData.milk.value}}<br>
+             sugar:{{formData.foodData.sugar.value}}<br>
              lemon:{{formData.foodData.lemon.value}}<br>
             <h2>Radio</h2>
             <input class="w3-radio" type="radio" name="gender" value="male"  checked="checked" formControlName="gender" formControlIndex='0'>
             <label>Male</label>
             <input class="w3-radio" type="radio" name="gender" value="female"   formControlName="gender" formControlIndex='1'>
             <label>Female</label>
+            <br>
              gender:{{formData.gender.value}}<br>
             <h2>Select</h2>
             <select class="w3-select" name="option" formControlName="options" >
@@ -81,6 +83,7 @@
             <hr>
             <button @click.prevent="SetValue()">SetValue</button>
             <button @click.prevent="GetData()">GetData</button>
+            <button @click.prevent="ClearValue()">Clear Value</button>
         </form>
     </div>
 </template>
@@ -97,19 +100,19 @@ export default {
        return{
             formData:new FormGroup({
                 'basicData':new FormGroup({
-                    'fullName':new FormControl(),
+                    'fullName':new FormControl('Sherif'),
                     'password':new FormControl()                    
                     }),
                     'foodData':new FormGroup({
-                        'milk':new FormControl(),
+                        'milk':new FormControl('true'),
                         'sugar':new FormControl(),
                         'lemon':new FormControl(),
                     }),
                     Notes:new FormArray(),
-                    CustomText:new FormControl(),
-                    gender:new FormControl(),
-                    options:new FormControl(),
-                    options2:new FormControl()
+                    CustomText:new FormControl('A-B'),
+                    gender:new FormControl('female'),
+                    options:new FormControl(['3']),
+                    options2:new FormControl(['1','3'])
                     //options:new FormControl()
                 }),
                 ShowControl:false,
@@ -145,6 +148,14 @@ export default {
            this.formData.Push("newData",new FormControl())
            //this.formData.newData=new FormControl();
            this.ShowNewData=true;
+       },
+       ClearValue()
+       {
+           this.formData.basicData.fullName.setValue(undefined);
+           this.formData.foodData.milk.setValue(undefined)
+           this.formData.options.setValue(undefined);
+           this.formData.options2.setValue(undefined);
+           this.formData.CustomText.setValue(undefined);
        }
    }
 }

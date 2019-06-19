@@ -28,7 +28,6 @@ export class FormGroup
     ClearVnode(){
         for(let k in this){
             if(this[k] instanceof FormGroup || this[k] instanceof FormArray){
-                console.log('ClearVnode FormGroup');
                 this[k].ClearVnode();
             }
             else{
@@ -62,9 +61,9 @@ export class FormGroup
 
 export class FormControl
 {
-    constructor(){
+    constructor(defValue){
         //console.log('FormControl constructor');
-        this._value=undefined;
+        this._value=defValue;
         this.vNodes=[];
     }
 
@@ -78,18 +77,22 @@ export class FormControl
       }
 
       UpdateModelValue(newValue){
-            if(newValue != undefined)
-            {
-                this._value=newValue;
-            }
+            this._value=newValue;
       }
 
       UpdateUiValue()
       {
-          if(this._value != undefined && this.IsvNodeExist())
+          //if(this._value != undefined && this.IsvNodeExist())
+          if(this._value)
           {
             this.vNodes.forEach(vnode=>{
                 SetElementValue(vnode,this._value);
+            })
+          }
+          else
+          {
+            this.vNodes.forEach(vnode=>{
+                ClearElementValue(vnode);
             })
           }
       }
@@ -198,16 +201,46 @@ const SetElementValue=function(elm,newValue)
         }
     }
     else if(crElm.constructor.toString().includes('HTMLSelectElement')){ //crElm.constructor.name=='HTMLSelectElement'
+        crElm.selectedIndex=-1;
         for(var i = 0; i < crElm.options.length; i++) {
             let option=crElm.options[i];
             if(newValue.includes(option.value)){
-                option.setAttribute("selected","selected");
+                option.selected=true;
             }
             else{
-                option.removeAttribute("selected");
+                option.selected=false;
             }
           }
         
+    }
+}
+
+const ClearElementValue=function(elm)
+{
+    let crElm=elm;
+    if(elm.constructor.toString().includes('VNode')) // elm.constructor.name=='VNode'
+    {
+        if(elm.componentInstance != undefined)
+            crElm=elm.componentInstance;
+        else
+            crElm=elm.elm
+    }
+    if(crElm.constructor.toString().includes('VueComponent')){ // crElm.constructor.name=='VueComponent'
+        crElm.value=null;
+    }
+    else if(crElm.constructor.toString().includes('HTMLInputElement')){ // crElm.constructor.name=='HTMLInputElement'
+        switch(crElm.type){
+            case 'checkbox':
+                crElm.checked=false;
+            break;
+            case 'radio':               
+            break;
+            default:
+                crElm.value=null;
+        }
+    }
+    else if(crElm.constructor.toString().includes('HTMLSelectElement')){ //crElm.constructor.name=='HTMLSelectElement'
+        crElm.selectedIndex=-1;
     }
 }
 
@@ -226,7 +259,7 @@ const bindEvent=function(el, binding, vnode){
         var callback = function(mutationsList, observer) {
             bindData.lastBinding.value.ClearVnode();
             bindEvent(bindData.lastEl, bindData.lastBinding, bindData.lastvnode);
-            bindData.lastBinding.value.ClearUnlinkedValue();
+            //bindData.lastBinding.value.ClearUnlinkedValue();
         };
         var observer = new MutationObserver(callback);
         observer.observe(vnode.elm, config);
@@ -247,8 +280,8 @@ const bindEvent=function(el, binding, vnode){
                             formControlIndex=element.data.attrs.formControlIndex
                         let controlName=element.data.attrs.formControlName;
                         let control=binding.value.get(controlName,formControlIndex);
-                        console.log(controlName);
-                        console.log(control);
+                        // console.log(controlName);
+                        // console.log(control);
                         if(control != undefined){
                             
                             element.elm.formControl=control;
