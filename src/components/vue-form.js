@@ -25,6 +25,7 @@ export class FormGroup
             return null;
           }
     }
+
     ClearVnode(){
         for(let k in this){
             if(this[k] instanceof FormGroup || this[k] instanceof FormArray){
@@ -35,6 +36,7 @@ export class FormGroup
             }
         }
     }
+
     ClearUnlinkedValue(){
         for(let k in this){
             if(this[k] instanceof FormGroup){
@@ -53,18 +55,29 @@ export class FormGroup
         }
     }
 
-    Push(prop,data)
-    {
-        Vue.set(this, prop, data);
-    }
+    // Push(prop,data)
+    // {
+    //     Vue.set(this, prop, data);
+    // }
+
+    get IsValid(){
+        let status=true;
+        for(let k in this){
+            let tmpStatus =this[k].IsValid;
+            if(status)
+                status= tmpStatus;
+        }
+        return status;
+      }
 }
 
 export class FormControl
 {
-    constructor(defValue){
+    constructor(defValue,validators){
         //console.log('FormControl constructor');
         this._value=defValue;
         this.vNodes=[];
+        this._validators=validators;
     }
 
     setValue(newValue){
@@ -104,6 +117,19 @@ export class FormControl
         else
             return false;
       }
+
+      get IsValid(){
+        let status=true;
+        if(Array.isArray(this._validators))
+        {
+            this._validators.forEach(element => {
+                if(!element(this._value) && status){
+                    status=false;
+                }
+            });
+        }
+        return status;
+      }
 }
 
 export class FormArray
@@ -131,6 +157,34 @@ export class FormArray
       Push(obj){
         this.Controls.push(obj) 
       }
+
+      get IsValid(){
+        let status=true;
+        if(this.Controls)
+        {
+            this.Controls.forEach(element => {
+                let tmpStatus =element.IsValid;
+                if(status)
+                    status= tmpStatus;
+                });
+        }
+        return status;
+      }
+}
+
+export class Validators 
+{
+    static required=function(){
+        return function(value){
+            return (value!= undefined && value != null && value.length > 0);
+        };
+    } 
+
+    static minLength=function(minLeng){
+        return function(value){
+            return (value!= undefined && value != null && value.length > 0 && value.length >= minLeng);
+        };
+    }
 }
 
 const GetElementValue=function(elm)

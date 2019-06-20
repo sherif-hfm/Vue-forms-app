@@ -8,11 +8,13 @@
                 <p>
                 <label>User Name</label>
                 <input class="w3-input" type="text" formControlName="basicData.fullName"> </p>
-                Full Name:{{formData.basicData.fullName.value}}<br>
+                Full Name:{{formData.basicData.fullName.value}} - {{formData.basicData.fullName.IsValid}}<br>
                 <p>
                 <label>Password</label>
                 <input class="w3-input" type="password" formControlName="basicData.password"></p>
+                Password:{{formData.basicData.password.value}} - {{formData.basicData.password.IsValid}}<br>
             </div>
+            basic Data:{{formData.basicData.IsValid}}<br>
             <button @click.prevent="ShowControl=!ShowControl">Show Controls</button><br>            
             <p v-if="ShowControl">
             <label>Custom Test</label>
@@ -48,7 +50,7 @@
                 <option value="2" itemCode='A2'>Option 2</option>
                 <option value="3" itemCode='A3'>Option 3</option>
             </select>
-             option:{{formData.options.value}}<br>
+             option:{{formData.options.value}}-{{formData.options.IsValid}}<br>
             <h2>Select2</h2>
             <select class="w3-select" name="option2" formControlName="options2" multiple  >
                 <option value="" disabled selected>Choose your option</option>
@@ -67,11 +69,13 @@
                 <button @click.prevent="formData.Notes.Controls.splice(index,1)">Remove Note{{index}}</button>
             </div>
             <br>
-            Notes:{{formData.Notes.value}}
             <p v-for="(note, index) in formData.Notes.Controls">
-                NoteNo:{{note.NoteNo.value}}<br>
-                NoteDesc:{{note.NoteDesc.value}}<br>
+                NoteNo:{{note.NoteNo.value}}-{{note.NoteNo.IsValid}}<br>
+                NoteDesc:{{note.NoteDesc.value}}-{{note.NoteDesc.IsValid}}<br>
+                Note:{{formData.Notes.Controls[index].IsValid}}<br>
             </p>
+            <br>
+            Notes:{{formData.Notes.IsValid}}<br>
             <br>
             <button @click.prevent="AddData()">AddData</button><br>
                 <p v-if="ShowNewData">
@@ -84,12 +88,13 @@
             <button @click.prevent="SetValue()">SetValue</button>
             <button @click.prevent="GetData()">GetData</button>
             <button @click.prevent="ClearValue()">Clear Value</button>
+            <button @click.prevent="TestValidators()">Test Validators</button>
         </form>
     </div>
 </template>
 <script>
 import CustomText from './CustomText.vue'
-import {FormGroup,FormControl,FormArray} from './vue-form.js'
+import {FormGroup,FormControl,FormArray,Validators } from './vue-form.js'
 export default {
    name:'form2' ,
     components: {
@@ -100,8 +105,8 @@ export default {
        return{
             formData:new FormGroup({
                 'basicData':new FormGroup({
-                    'fullName':new FormControl('Sherif'),
-                    'password':new FormControl()                    
+                    'fullName':new FormControl(null,[Validators.minLength(5),Validators.required()]),
+                    'password':new FormControl(null,[this.NotequalValidator(['123'])])                    
                     }),
                     'foodData':new FormGroup({
                         'milk':new FormControl('true'),
@@ -111,13 +116,14 @@ export default {
                     Notes:new FormArray(),
                     CustomText:new FormControl('A-B'),
                     gender:new FormControl('female'),
-                    options:new FormControl(['3']),
+                    options:new FormControl(null,[Validators.required()]),
                     options2:new FormControl(['1','3'])
                     //options:new FormControl()
                 }),
                 ShowControl:false,
                 ShowNewData:false,
-                Notes:[]
+                Notes:[],
+                
        }
    },
    methods:{
@@ -138,8 +144,8 @@ export default {
        AddNote(){
            //console.log(this.Notes);
             this.formData.Notes.Push(new FormGroup({
-                NoteNo:new FormControl(),
-                NoteDesc:new FormControl()
+                NoteNo:new FormControl(null,[Validators.required()]),
+                NoteDesc:new FormControl(null)
             }));
        },
        AddData(){
@@ -156,7 +162,22 @@ export default {
            this.formData.options.setValue(undefined);
            this.formData.options2.setValue(undefined);
            this.formData.CustomText.setValue(undefined);
-       }
+       },
+       TestValidators(){
+           //let validators=[Validators.minLength(5),Validators.required()]
+           let validators=[this.NotequalValidator(['asd'])]
+           validators.forEach(element => {               
+               console.log(element('asd'));
+           });
+           
+       },
+       NotequalValidator:function(name)
+                {
+                    return function(value)
+                    {                        
+                        return !name.includes(value);
+                    }
+                }
    }
 }
 </script>
