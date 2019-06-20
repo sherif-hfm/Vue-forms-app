@@ -5,8 +5,10 @@ export class FormGroup
     constructor(_vform){
         //console.log('FormGroup constructor');       
         for(let k in _vform)
+        {
             this[k]=_vform[k];
-        //console.log(this.vForm);
+        }
+        //console.log(this.vForm);        
     }
     get(controlName,formControlIndex){
         try {
@@ -69,6 +71,28 @@ export class FormGroup
         }
         return status;
       }
+
+      get Touched(){
+        let status=false;
+        for(let k in this){
+            let tmpStatus =this[k].Touched;
+            if(!status)
+                status= tmpStatus;
+        }
+        return status;
+      }
+
+      get ErrorMessages(){
+        let ErrorMessages=[];
+            for(let k in this){
+                let tmpStatus =this[k].IsValid;
+                if(!tmpStatus.status){
+                    ErrorMessages.push(...this[k].ErrorMessages);
+            }
+
+        }
+        return ErrorMessages;
+      }
 }
 
 export class FormControl
@@ -78,6 +102,8 @@ export class FormControl
         this._value=defValue;
         this.vNodes=[];
         this._validators=validators;
+        this._touched=false;
+        
     }
 
     setValue(newValue){
@@ -123,12 +149,31 @@ export class FormControl
         if(Array.isArray(this._validators))
         {
             this._validators.forEach(element => {
-                if(!element(this._value) && status){
-                    status=false;
+                let tmpStatus=element(this._value);
+                if(!tmpStatus.status){
+                    this.ErrorMessages.push(tmpStatus.ErrorMessage);
+                }
+                if(status){
+                    status=tmpStatus.status;
                 }
             });
         }
         return status;
+      }
+      
+      get Touched(){
+        return this._touched
+      }
+
+      get ErrorMessages(){
+        let ErrorMessages=[];
+            this._validators.forEach(element => {
+            let tmpStatus=element(this._value);
+            if(!tmpStatus.status){
+                ErrorMessages.push(tmpStatus.ErrorMessage);
+            }
+        });
+        return ErrorMessages;
       }
 }
 
@@ -139,6 +184,7 @@ export class FormArray
         this._value=[];
         this.vNodes=[];
         this.Controls=[];
+        this._touched=false;
     }
     get(controlName,formControlIndex){
         return this.Controls[formControlIndex].get(controlName)
@@ -170,19 +216,56 @@ export class FormArray
         }
         return status;
       }
+
+      get Touched(){
+        let status=false;
+        if(this.Controls)
+        {
+            this.Controls.forEach(element => {
+                let tmpStatus =element.Touched;
+                if(!status)
+                    status= tmpStatus;
+                });
+        }
+        return status;
+      }
+
+      get ErrorMessages(){
+        let ErrorMessages=[];
+        if(this.Controls)
+        {
+            this.Controls.forEach(element => {
+                let tmpStatus =element.IsValid;
+                if(!tmpStatus.status){
+                    ErrorMessages.push(...element.ErrorMessages);
+                }
+            });
+        }
+        return status;
+    }
 }
 
 export class Validators 
 {
     static required=function(){
+        let ErrorMessage='field is required'
         return function(value){
-            return (value!= undefined && value != null && value.length > 0);
+            let status={};
+            status.status=(value!= undefined && value != null && value.length > 0);
+            if(status.status==false)
+                status.ErrorMessage=ErrorMessage;
+            return status;
         };
     } 
 
     static minLength=function(minLeng){
+        let ErrorMessage='field min length is' + minLeng; 
         return function(value){
-            return (value!= undefined && value != null && value.length > 0 && value.length >= minLeng);
+            let status={};
+            status.status=(value!= undefined && value != null && value.length > 0 && value.length >= minLeng)
+            if(status.status==false)
+                status.ErrorMessage=ErrorMessage;
+            return status;
         };
     }
 }
@@ -348,6 +431,11 @@ const bindEvent=function(el, binding, vnode){
                                     //console.log('input');
                                     //console.log(e);
                                     e.$el.formControl.UpdateModelValue(GetElementValue(e),formControlIndex);
+                                    e.$el.formControl._touched=true;
+                                })
+                                element.componentInstance.$on('blur',function(e){
+                                   
+                                    e.$el.formControl._touched=true;
                                 })
                             }
                             else if(element.tag=='select')
@@ -364,9 +452,16 @@ const bindEvent=function(el, binding, vnode){
                                 {
                                     //console.log('oninput');
                                     //console.log(e.target);
+                                    e.target.formControl._touched=true;
                                     e.target.formControl.UpdateModelValue(GetElementValue(e.target),formControlIndex)
-                                    
                                 };
+                                const blurEvent=function(e)
+                                {
+                                    //console.log('onblur');
+                                    //console.log(e.target);
+                                    e.target.formControl._touched=true;
+                                };
+                                element.elm.onblur=blurEvent;
                                 switch(element.data.attrs.type) {
                                     case 'checkbox':
                                             element.elm.onchange=inputEvent;

@@ -8,13 +8,13 @@
                 <p>
                 <label>User Name</label>
                 <input class="w3-input" type="text" formControlName="basicData.fullName"> </p>
-                Full Name:{{formData.basicData.fullName.value}} - {{formData.basicData.fullName.IsValid}}<br>
+                Full Name:{{formData.basicData.fullName.value}} - {{formData.basicData.fullName.IsValid}} - {{formData.basicData.fullName.Touched}}<br>
                 <p>
                 <label>Password</label>
                 <input class="w3-input" type="password" formControlName="basicData.password"></p>
                 Password:{{formData.basicData.password.value}} - {{formData.basicData.password.IsValid}}<br>
             </div>
-            basic Data:{{formData.basicData.IsValid}}<br>
+            basic Data:{{formData.basicData.IsValid}}-- {{formData.basicData.Touched}}--{{formData.basicData.ErrorMessages}}<br>
             <button @click.prevent="ShowControl=!ShowControl">Show Controls</button><br>            
             <p v-if="ShowControl">
             <label>Custom Test</label>
@@ -70,12 +70,12 @@
             </div>
             <br>
             <p v-for="(note, index) in formData.Notes.Controls">
-                NoteNo:{{note.NoteNo.value}}-{{note.NoteNo.IsValid}}<br>
-                NoteDesc:{{note.NoteDesc.value}}-{{note.NoteDesc.IsValid}}<br>
-                Note:{{formData.Notes.Controls[index].IsValid}}<br>
+                NoteNo:{{note.NoteNo.value}}-{{note.NoteNo.IsValid}}-{{note.NoteNo.Touched}}<br>
+                NoteDesc:{{note.NoteDesc.value}}-{{note.NoteDesc.IsValid}}-{{note.NoteDesc.Touched}}<br>
+                Note:{{formData.Notes.Controls[index].IsValid}}--{{formData.Notes.Controls[index].Touched}}<br>
             </p>
             <br>
-            Notes:{{formData.Notes.IsValid}}<br>
+            Notes:{{formData.Notes.IsValid}}--{{formData.Notes.Touched}}<br>
             <br>
             <button @click.prevent="AddData()">AddData</button><br>
                 <p v-if="ShowNewData">
@@ -139,6 +139,7 @@ export default {
        },
        GetData(){
             console.log(this.formData) ;
+             console.log(this.formData.basicData.ErrorMessages) ;
             //console.log(this.formData.basicData.fullName.value) ;
        },
        AddNote(){
@@ -173,9 +174,14 @@ export default {
        },
        NotequalValidator:function(name)
                 {
+                    let ErrorMessage='field must not equal'
                     return function(value)
-                    {                        
-                        return !name.includes(value);
+                    {
+                         let status={};
+                          status.status= (!name.includes(value));
+                        if(status.status==false)
+                            status.ErrorMessage=ErrorMessage;                        
+                        return status ;
                     }
                 }
    }
